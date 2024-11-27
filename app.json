@@ -36,6 +36,15 @@
     ],
     "experiments": {
       "typedRoutes": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "f456d93f-1489-480a-b3d3-06bf16c302d8"
+      }
+    },
+    "owner": "ztoben"
   }
 }
