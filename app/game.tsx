@@ -47,6 +47,7 @@ export default function GameScreen() {
   const [maxStreak, setMaxStreak] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(true);
   const [hasAttempted, setHasAttempted] = useState(false);
+  const [isInputDisabled, setIsInputDisabled] = useState(false);
   const questionStartTime = useRef<number>(Date.now());
   const lastInputTime = useRef<number>(0);
   const lastInputValue = useRef<number | null>(null);
@@ -97,6 +98,7 @@ export default function GameScreen() {
     setUserAnswer('');
     setIsTimerActive(true);
     setHasAttempted(false);
+    setIsInputDisabled(false);
     questionStartTime.current = Date.now();
     answerBackgroundColor.value = '#ffffff';
     answerScale.value = 1;
@@ -104,6 +106,8 @@ export default function GameScreen() {
   };
 
   const handleNumberPress = (num: number) => {
+    if (isInputDisabled) return;
+
     const now = Date.now();
     // Debounce: ignore if same number pressed within 50ms
     if (lastInputValue.current === num && now - lastInputTime.current < 50) {
@@ -116,6 +120,7 @@ export default function GameScreen() {
   };
 
   const handleBackspace = () => {
+    if (isInputDisabled) return;
     setUserAnswer((prev) => prev.slice(0, -1));
   };
 
@@ -134,7 +139,10 @@ export default function GameScreen() {
   };
 
   const handleSubmit = () => {
-    if (!question || userAnswer === '') return;
+    if (!question || userAnswer === '' || isInputDisabled) return;
+
+    // Disable input until answer is cleared or next question
+    setIsInputDisabled(true);
 
     const isCorrect = parseInt(userAnswer) === question.correctAnswer;
 
@@ -163,14 +171,23 @@ export default function GameScreen() {
 
       // Move to next question after showing animation
       setTimeout(() => {
-        if (questionsAnswered + 1 >= 10 || (hasAttempted && questionsAnswered >= 10)) {
-          // Game over after 10 questions
+        const newQuestionsAnswered = questionsAnswered + 1;
+
+        // End game if:
+        // - Completed at least 15 questions AND
+        // - This was a retry (hasAttempted = true), meaning the streak was broken
+        const shouldEndGame = newQuestionsAnswered >= 15 && hasAttempted;
+
+        if (shouldEndGame) {
+          // Game over - completed at least 15 questions and streak was broken
           router.push({
             pathname: '/results',
             params: {
               score,
-              total: 40, // Max 4 points per question * 10 questions
+              questionsAnswered: newQuestionsAnswered,
               maxStreak,
+              operation: settings.operation,
+              difficulty: settings.difficulty,
             },
           });
         } else {
@@ -199,6 +216,7 @@ export default function GameScreen() {
       // Clear their answer and reset the background after animation
       setTimeout(() => {
         setUserAnswer('');
+        setIsInputDisabled(false);
         answerBackgroundColor.value = withTiming('#ffffff', { duration: 300 });
       }, 500);
     }
@@ -236,11 +254,11 @@ export default function GameScreen() {
         <Text style={styles.homeButtonText}>← Home</Text>
       </TouchableOpacity>
 
-      <CountdownBar duration={ANSWER_TIME} isActive={isTimerActive} />
+      <CountdownBar key={questionsAnswered} duration={ANSWER_TIME} isActive={isTimerActive} />
 
       <View style={styles.scoreContainer}>
         <Text style={styles.scoreText}>Score: {score}</Text>
-        <Text style={styles.progressText}>Question {questionsAnswered + 1}/10</Text>
+        <Text style={styles.progressText}>Question {questionsAnswered + 1}</Text>
         <Text style={[styles.streakText, { opacity: streak > 0 ? 1 : 0 }]}>
           🔥 Streak: {streak}
         </Text>
@@ -285,6 +303,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 5,
     marginBottom: 20,
+    minWidth: 250,
   },
   scoreText: {
     fontSize: 24,

@@ -7,6 +7,7 @@ import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { GameProvider } from '@/contexts/game-context';
+import { StatsProvider } from '@/contexts/stats-context';
 
 export const unstable_settings = {
   anchor: 'index',
@@ -16,8 +17,9 @@ export default function RootLayout() {
   const colorScheme = useColorScheme();
 
   return (
-    <GameProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+    <StatsProvider>
+      <GameProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Stack
           screenOptions={{
             headerStyle: {
@@ -79,7 +81,8 @@ export default function RootLayout() {
           <Stack.Screen name="results" options={{ title: 'Results' }} />
         </Stack>
         <StatusBar style="dark" />
-      </ThemeProvider>
-    </GameProvider>
+        </ThemeProvider>
+      </GameProvider>
+    </StatsProvider>
   );
 }
