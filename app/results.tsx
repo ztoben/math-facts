@@ -1,37 +1,16 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { View, StyleSheet, Text } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { HandDrawnButton } from '@/components/hand-drawn-button';
 import { ThemedView } from '@/components/themed-view';
-import { useStats, type DifficultyType, type GameStats } from '@/contexts/stats-context';
-import { OperationType } from '@/contexts/game-context';
 
 export default function ResultsScreen() {
   const params = useLocalSearchParams();
   const score = parseInt(params.score as string) || 0;
-  const questionsAnswered = parseInt(params.questionsAnswered as string) || 15;
+  const questionsAnswered = parseInt(params.questionsAnswered as string) || 10;
   const maxStreak = parseInt(params.maxStreak as string) || 0;
-  const operation = (params.operation as OperationType) || 'addition';
-  const difficulty = (params.difficulty as DifficultyType) || 'easy';
-
-  const { updateStats, getStatsForGame } = useStats();
-  const [currentStats, setCurrentStats] = useState<GameStats | null>(null);
-  const [isNewHighScore, setIsNewHighScore] = useState(false);
-  const [isNewHighStreak, setIsNewHighStreak] = useState(false);
-
-  useEffect(() => {
-    // Get current stats before updating
-    const stats = getStatsForGame(difficulty, operation);
-    setIsNewHighScore(score > stats.highestScore);
-    setIsNewHighStreak(maxStreak > stats.highestStreak);
-
-    // Update stats
-    updateStats(difficulty, operation, score, maxStreak);
-
-    // Get updated stats for display
-    const updatedStats = getStatsForGame(difficulty, operation);
-    setCurrentStats(updatedStats);
-  }, []);
+  const operation = (params.operation as string) || 'addition';
+  const difficulty = (params.difficulty as string) || 'easy';
 
   const total = questionsAnswered * 4; // Max 4 points per question
 
@@ -56,22 +35,16 @@ export default function ResultsScreen() {
   return (
     <ThemedView style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Results</Text>
-
         <View style={styles.scoreContainer}>
           <Text style={styles.scoreText}>
-            {score} / {total}
+            You scored {score} points!
           </Text>
-          <Text style={styles.percentageText}>{percentage}%</Text>
         </View>
 
-        <Text style={styles.message}>{getMessage()}</Text>
-
         <View style={styles.detailsContainer}>
-          {maxStreak > 0 && (
+          {maxStreak >= 5 && (
             <Text style={styles.streakText}>
               🔥 Best Streak: {maxStreak} in a row!
-              {isNewHighStreak && ' 🎉 NEW RECORD!'}
             </Text>
           )}
           <Text style={styles.detailText}>
@@ -79,21 +52,6 @@ export default function ResultsScreen() {
           </Text>
           <Text style={styles.detailText}>
             Difficulty: {difficulty.charAt(0).toUpperCase() + difficulty.slice(1)}
-          </Text>
-          {currentStats && (
-            <View style={styles.statsContainer}>
-              <Text style={styles.statsHeader}>Your Records ({difficulty} {operation}):</Text>
-              <Text style={styles.statsText}>
-                High Score: {currentStats.highestScore} {isNewHighScore && '⭐ NEW!'}
-              </Text>
-              <Text style={styles.statsText}>
-                High Streak: {currentStats.highestStreak}
-              </Text>
-              <Text style={styles.statsText}>Games Played: {currentStats.gamesPlayed}</Text>
-            </View>
-          )}
-          <Text style={styles.hintText}>
-            Faster answers = more points! (Max 4 per question)
           </Text>
         </View>
 
@@ -175,26 +133,6 @@ const styles = StyleSheet.create({
     color: '#777',
     fontStyle: 'italic',
     marginTop: 10,
-  },
-  statsContainer: {
-    marginTop: 20,
-    padding: 15,
-    backgroundColor: '#FFFEF5',
-    borderRadius: 10,
-    borderWidth: 2,
-    borderColor: '#1a1a1a',
-    alignItems: 'center',
-  },
-  statsHeader: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#1a1a1a',
-    marginBottom: 10,
-  },
-  statsText: {
-    fontSize: 16,
-    color: '#555',
-    marginVertical: 3,
   },
   buttonContainer: {
     width: '100%',

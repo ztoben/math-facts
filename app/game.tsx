@@ -43,6 +43,7 @@ export default function GameScreen() {
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
+  const [questionId, setQuestionId] = useState(0);
   const [streak, setStreak] = useState(0);
   const [maxStreak, setMaxStreak] = useState(0);
   const [isTimerActive, setIsTimerActive] = useState(true);
@@ -99,6 +100,7 @@ export default function GameScreen() {
     setIsTimerActive(true);
     setHasAttempted(false);
     setIsInputDisabled(false);
+    setQuestionId((prev) => prev + 1);
     questionStartTime.current = Date.now();
     answerBackgroundColor.value = '#ffffff';
     answerScale.value = 1;
@@ -138,6 +140,14 @@ export default function GameScreen() {
     return 1; // 75-100%
   };
 
+  const handleTimeExpired = () => {
+    if (!hasAttempted) {
+      setIsTimerActive(false);
+      setHasAttempted(true);
+      setStreak(0);
+    }
+  };
+
   const handleSubmit = () => {
     if (!question || userAnswer === '' || isInputDisabled) return;
 
@@ -147,20 +157,24 @@ export default function GameScreen() {
     const isCorrect = parseInt(userAnswer) === question.correctAnswer;
 
     if (isCorrect) {
-      // Only stop timer and award points on first attempt
+      // Only stop timer and award points on first attempt (within time limit)
       if (!hasAttempted) {
         setIsTimerActive(false);
         const timeElapsed = Date.now() - questionStartTime.current;
         const points = calculatePoints(timeElapsed);
         setScore((prev) => prev + points);
         setQuestionsAnswered((prev) => prev + 1);
-      }
 
-      setStreak((prev) => {
-        const newStreak = prev + 1;
-        setMaxStreak((max) => Math.max(max, newStreak));
-        return newStreak;
-      });
+        // Only increment streak if answered within time limit
+        setStreak((prev) => {
+          const newStreak = prev + 1;
+          setMaxStreak((max) => Math.max(max, newStreak));
+          return newStreak;
+        });
+      } else {
+        // Got it right but time expired or wrong attempt - no streak
+        setQuestionsAnswered((prev) => prev + 1);
+      }
 
       // Animate correct answer - green background and scale
       answerBackgroundColor.value = withTiming('#90EE90', { duration: 300 });
@@ -174,12 +188,14 @@ export default function GameScreen() {
         const newQuestionsAnswered = questionsAnswered + 1;
 
         // End game if:
-        // - Completed at least 15 questions AND
-        // - This was a retry (hasAttempted = true), meaning the streak was broken
-        const shouldEndGame = newQuestionsAnswered >= 15 && hasAttempted;
+        // - Completed at least 10 questions AND this was a retry (hasAttempted = true), meaning the streak was broken
+        // - OR reached the maximum of 25 questions
+        const shouldEndGame =
+          (newQuestionsAnswered >= 10 && hasAttempted) ||
+          newQuestionsAnswered >= 25;
 
         if (shouldEndGame) {
-          // Game over - completed at least 15 questions and streak was broken
+          // Game over
           router.push({
             pathname: '/results',
             params: {
@@ -254,12 +270,12 @@ export default function GameScreen() {
         <Text style={styles.homeButtonText}>← Home</Text>
       </TouchableOpacity>
 
-      <CountdownBar key={questionsAnswered} duration={ANSWER_TIME} isActive={isTimerActive} />
+      <CountdownBar key={questionId} duration={ANSWER_TIME} isActive={isTimerActive} onComplete={handleTimeExpired} />
 
       <View style={styles.scoreContainer}>
         <Text style={styles.scoreText}>Score: {score}</Text>
         <Text style={styles.progressText}>Question {questionsAnswered + 1}</Text>
-        <Text style={[styles.streakText, { opacity: streak > 0 ? 1 : 0 }]}>
+        <Text style={[styles.streakText, { opacity: streak >= 5 ? 1 : 0 }]}>
           🔥 Streak: {streak}
         </Text>
       </View>
