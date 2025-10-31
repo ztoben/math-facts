@@ -8,13 +8,14 @@ import { useGame } from '@/contexts/game-context';
 export default function ResultsScreen() {
   const params = useLocalSearchParams();
   const score = parseInt(params.score as string) || 0;
-  const total = parseInt(params.total as string) || 10;
+  const total = parseInt(params.total as string) || 40;
+  const maxStreak = parseInt(params.maxStreak as string) || 0;
   const { settings } = useGame();
 
   const percentage = Math.round((score / total) * 100);
 
   const getMessage = () => {
-    if (percentage === 100) return 'Perfect! 🌟';
+    if (percentage >= 90) return 'Outstanding! 🌟';
     if (percentage >= 80) return 'Great job! 🎉';
     if (percentage >= 60) return 'Good work! 👍';
     if (percentage >= 40) return 'Keep practicing! 💪';
@@ -44,11 +45,17 @@ export default function ResultsScreen() {
         <Text style={styles.message}>{getMessage()}</Text>
 
         <View style={styles.detailsContainer}>
+          {maxStreak > 0 && (
+            <Text style={styles.streakText}>🔥 Best Streak: {maxStreak} in a row!</Text>
+          )}
           <Text style={styles.detailText}>
             Operation: {settings.operation.charAt(0).toUpperCase() + settings.operation.slice(1)}
           </Text>
           <Text style={styles.detailText}>
             Difficulty: {settings.difficulty.charAt(0).toUpperCase() + settings.difficulty.slice(1)}
+          </Text>
+          <Text style={styles.hintText}>
+            Faster answers = more points! (Max 4 per question)
           </Text>
         </View>
 
@@ -118,6 +125,18 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#555',
     marginVertical: 5,
+  },
+  streakText: {
+    fontSize: 22,
+    color: '#FF6B35',
+    fontWeight: 'bold',
+    marginBottom: 15,
+  },
+  hintText: {
+    fontSize: 14,
+    color: '#777',
+    fontStyle: 'italic',
+    marginTop: 10,
   },
   buttonContainer: {
     width: '100%',

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Text } from 'react-native';
+import { View, StyleSheet, Pressable, Text } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { Svg } from 'react-native-svg';
 import Rough from 'react-native-rough';
 
@@ -12,32 +13,45 @@ interface NumberPadProps {
 export function NumberPad({ onNumberPress, onBackspace, onSubmit }: NumberPadProps) {
   const buttonSize = 70;
 
-  const renderButton = (value: string | number, onPress: () => void, isWide = false) => {
+  const renderButton = (value: string | number, onPress: () => void, isWide = false, color?: string) => {
     const width = isWide ? buttonSize * 2 + 15 : buttonSize;
+    const scale = useSharedValue(1);
+    const fillColor = color || '#F5F3E7';
+
+    const animatedStyle = useAnimatedStyle(() => ({
+      transform: [{ scale: scale.value }],
+    }));
 
     return (
-      <TouchableOpacity
+      <Pressable
         key={value}
         onPress={onPress}
-        style={[styles.button, { width, height: buttonSize }]}
-        activeOpacity={0.7}>
-        <Svg height={buttonSize} width={width} style={StyleSheet.absoluteFill}>
-          <Rough.Rectangle
-            x={3}
-            y={3}
-            width={width - 6}
-            height={buttonSize - 6}
-            fill="#F5F3E7"
-            stroke="#1a1a1a"
-            strokeWidth={2}
-            roughness={1.5}
-            bowing={2}
-          />
-        </Svg>
-        <View style={styles.buttonTextContainer}>
-          <Text style={styles.buttonText}>{value}</Text>
-        </View>
-      </TouchableOpacity>
+        onPressIn={() => {
+          scale.value = withSpring(0.9, { damping: 15 });
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, { damping: 15 });
+        }}
+        style={[styles.button, { width, height: buttonSize }]}>
+        <Animated.View style={[{ width, height: buttonSize }, animatedStyle]}>
+          <Svg height={buttonSize} width={width} style={StyleSheet.absoluteFill}>
+            <Rough.Rectangle
+              x={3}
+              y={3}
+              width={width - 6}
+              height={buttonSize - 6}
+              fill={fillColor}
+              stroke="#1a1a1a"
+              strokeWidth={2}
+              roughness={1.5}
+              bowing={2}
+            />
+          </Svg>
+          <View style={styles.buttonTextContainer}>
+            <Text style={styles.buttonText}>{value}</Text>
+          </View>
+        </Animated.View>
+      </Pressable>
     );
   };
 
@@ -59,9 +73,9 @@ export function NumberPad({ onNumberPress, onBackspace, onSubmit }: NumberPadPro
         {renderButton(9, () => onNumberPress(9))}
       </View>
       <View style={styles.row}>
-        {renderButton('←', onBackspace)}
+        {renderButton('←', onBackspace, false, '#FFB6C1')}
         {renderButton(0, () => onNumberPress(0))}
-        {renderButton('✓', onSubmit)}
+        {renderButton('✓', onSubmit, false, '#90EE90')}
       </View>
     </View>
   );
@@ -70,7 +84,8 @@ export function NumberPad({ onNumberPress, onBackspace, onSubmit }: NumberPadPro
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    paddingVertical: 20,
+    paddingTop: 20,
+    paddingBottom: 30,
   },
   row: {
     flexDirection: 'row',

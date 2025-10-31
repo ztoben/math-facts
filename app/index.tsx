@@ -13,10 +13,6 @@ export default function HomeScreen() {
     router.push('/game');
   };
 
-  const goToSettings = () => {
-    router.push('/settings');
-  };
-
   return (
     <ThemedView style={styles.container}>
       <View style={styles.header}>
@@ -55,9 +51,6 @@ export default function HomeScreen() {
         />
       </View>
 
-      <TouchableOpacity onPress={goToSettings} style={styles.settingsButton}>
-        <Text style={styles.settingsText}>⚙ Settings</Text>
-      </TouchableOpacity>
     </ThemedView>
   );
 }
@@ -70,8 +63,8 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   header: {
-    marginBottom: 50,
     alignItems: 'center',
+    marginBottom: 40,
   },
   title: {
     fontSize: 48,
@@ -87,16 +80,5 @@ const styles = StyleSheet.create({
     width: '100%',
     alignItems: 'center',
     gap: 5,
-  },
-  settingsButton: {
-    position: 'absolute',
-    top: 60,
-    right: 20,
-    padding: 10,
-  },
-  settingsText: {
-    fontSize: 18,
-    color: '#1a1a1a',
-    fontWeight: '600',
   },
 });

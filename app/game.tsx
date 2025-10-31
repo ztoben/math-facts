@@ -1,8 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { router } from 'expo-router';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSequence,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 import { ThemedView } from '@/components/themed-view';
 import { NumberPad } from '@/components/number-pad';
+import { CountdownBar } from '@/components/countdown-bar';
 import { useGame, OperationType } from '@/contexts/game-context';
 
 interface Question {
@@ -14,11 +23,38 @@ interface Question {
 
 export default function GameScreen() {
   const { settings, getNumberRange } = useGame();
+
+  // Timer duration based on difficulty
+  const getAnswerTime = () => {
+    switch (settings.difficulty) {
+      case 'easy':
+        return 15000; // 15 seconds
+      case 'medium':
+        return 10000; // 10 seconds
+      case 'hard':
+        return 7000; // 7 seconds
+      default:
+        return 10000;
+    }
+  };
+
+  const ANSWER_TIME = getAnswerTime();
   const [question, setQuestion] = useState<Question | null>(null);
   const [userAnswer, setUserAnswer] = useState('');
   const [score, setScore] = useState(0);
   const [questionsAnswered, setQuestionsAnswered] = useState(0);
-  const [feedback, setFeedback] = useState<'correct' | 'incorrect' | null>(null);
+  const [streak, setStreak] = useState(0);
+  const [maxStreak, setMaxStreak] = useState(0);
+  const [isTimerActive, setIsTimerActive] = useState(true);
+  const [hasAttempted, setHasAttempted] = useState(false);
+  const questionStartTime = useRef<number>(Date.now());
+  const lastInputTime = useRef<number>(0);
+  const lastInputValue = useRef<number | null>(null);
+
+  // Animation values
+  const answerScale = useSharedValue(1);
+  const answerShake = useSharedValue(0);
+  const answerBackgroundColor = useSharedValue('#ffffff');
 
   const generateQuestion = (): Question => {
     const { min, max } = getNumberRange();
@@ -52,9 +88,30 @@ export default function GameScreen() {
 
   useEffect(() => {
     setQuestion(generateQuestion());
+    questionStartTime.current = Date.now();
+    setIsTimerActive(true);
   }, []);
 
+  const resetForNextQuestion = () => {
+    setQuestion(generateQuestion());
+    setUserAnswer('');
+    setIsTimerActive(true);
+    setHasAttempted(false);
+    questionStartTime.current = Date.now();
+    answerBackgroundColor.value = '#ffffff';
+    answerScale.value = 1;
+    answerShake.value = 0;
+  };
+
   const handleNumberPress = (num: number) => {
+    const now = Date.now();
+    // Debounce: ignore if same number pressed within 50ms
+    if (lastInputValue.current === num && now - lastInputTime.current < 50) {
+      return;
+    }
+
+    lastInputTime.current = now;
+    lastInputValue.current = num;
     setUserAnswer((prev) => prev + num.toString());
   };
 
@@ -62,33 +119,89 @@ export default function GameScreen() {
     setUserAnswer((prev) => prev.slice(0, -1));
   };
 
+  const calculatePoints = (timeElapsed: number): number => {
+    // Max 4 points if answered quickly
+    // 1 point if time expired
+    if (timeElapsed > ANSWER_TIME) {
+      return 1;
+    }
+
+    const percentage = timeElapsed / ANSWER_TIME;
+    if (percentage <= 0.25) return 4; // First 25% of time
+    if (percentage <= 0.5) return 3; // 25-50%
+    if (percentage <= 0.75) return 2; // 50-75%
+    return 1; // 75-100%
+  };
+
   const handleSubmit = () => {
     if (!question || userAnswer === '') return;
 
     const isCorrect = parseInt(userAnswer) === question.correctAnswer;
-    setFeedback(isCorrect ? 'correct' : 'incorrect');
 
     if (isCorrect) {
-      setScore((prev) => prev + 1);
-    }
-
-    setQuestionsAnswered((prev) => prev + 1);
-
-    // Show feedback briefly, then move to next question or results
-    setTimeout(() => {
-      if (questionsAnswered + 1 >= 10) {
-        // Game over after 10 questions
-        router.push({
-          pathname: '/results',
-          params: { score: score + (isCorrect ? 1 : 0), total: 10 },
-        });
-      } else {
-        // Next question
-        setQuestion(generateQuestion());
-        setUserAnswer('');
-        setFeedback(null);
+      // Only stop timer and award points on first attempt
+      if (!hasAttempted) {
+        setIsTimerActive(false);
+        const timeElapsed = Date.now() - questionStartTime.current;
+        const points = calculatePoints(timeElapsed);
+        setScore((prev) => prev + points);
+        setQuestionsAnswered((prev) => prev + 1);
       }
-    }, 1000);
+
+      setStreak((prev) => {
+        const newStreak = prev + 1;
+        setMaxStreak((max) => Math.max(max, newStreak));
+        return newStreak;
+      });
+
+      // Animate correct answer - green background and scale
+      answerBackgroundColor.value = withTiming('#90EE90', { duration: 300 });
+      answerScale.value = withSequence(
+        withSpring(1.15, { damping: 10 }),
+        withSpring(1, { damping: 10 })
+      );
+
+      // Move to next question after showing animation
+      setTimeout(() => {
+        if (questionsAnswered + 1 >= 10 || (hasAttempted && questionsAnswered >= 10)) {
+          // Game over after 10 questions
+          router.push({
+            pathname: '/results',
+            params: {
+              score,
+              total: 40, // Max 4 points per question * 10 questions
+              maxStreak,
+            },
+          });
+        } else {
+          // Next question
+          resetForNextQuestion();
+        }
+      }, 1000);
+    } else {
+      // Wrong answer - let them try again
+      if (!hasAttempted) {
+        setIsTimerActive(false);
+        setHasAttempted(true);
+        setStreak(0);
+      }
+
+      // Animate incorrect answer - red background and shake
+      answerBackgroundColor.value = withTiming('#FFB6C1', { duration: 300 });
+      answerShake.value = withSequence(
+        withTiming(-10, { duration: 50, easing: Easing.linear }),
+        withTiming(10, { duration: 50, easing: Easing.linear }),
+        withTiming(-10, { duration: 50, easing: Easing.linear }),
+        withTiming(10, { duration: 50, easing: Easing.linear }),
+        withTiming(0, { duration: 50, easing: Easing.linear })
+      );
+
+      // Clear their answer and reset the background after animation
+      setTimeout(() => {
+        setUserAnswer('');
+        answerBackgroundColor.value = withTiming('#ffffff', { duration: 300 });
+      }, 500);
+    }
   };
 
   const getOperationSymbol = (operation: OperationType) => {
@@ -108,22 +221,29 @@ export default function GameScreen() {
     router.push('/');
   };
 
+  const animatedAnswerStyle = useAnimatedStyle(() => {
+    return {
+      transform: [{ scale: answerScale.value }, { translateX: answerShake.value }],
+      backgroundColor: answerBackgroundColor.value,
+    };
+  });
+
   if (!question) return null;
 
   return (
     <ThemedView style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={goHome} style={styles.homeButton}>
-          <Text style={styles.homeButtonText}>← Home</Text>
-        </TouchableOpacity>
-        <View style={styles.scoreContainer}>
-          <Text style={styles.scoreText}>
-            Score: {score}/{questionsAnswered}
-          </Text>
-          <Text style={styles.progressText}>
-            Question {questionsAnswered + 1}/10
-          </Text>
-        </View>
+      <TouchableOpacity onPress={goHome} style={styles.homeButton}>
+        <Text style={styles.homeButtonText}>← Home</Text>
+      </TouchableOpacity>
+
+      <CountdownBar duration={ANSWER_TIME} isActive={isTimerActive} />
+
+      <View style={styles.scoreContainer}>
+        <Text style={styles.scoreText}>Score: {score}</Text>
+        <Text style={styles.progressText}>Question {questionsAnswered + 1}/10</Text>
+        <Text style={[styles.streakText, { opacity: streak > 0 ? 1 : 0 }]}>
+          🔥 Streak: {streak}
+        </Text>
       </View>
 
       <View style={styles.questionContainer}>
@@ -131,21 +251,9 @@ export default function GameScreen() {
           {question.num1} {getOperationSymbol(question.operation)} {question.num2} = ?
         </Text>
 
-        <View style={styles.answerDisplay}>
-          <Text style={styles.answerText}>{userAnswer || '_'}</Text>
-        </View>
-
-        {feedback && (
-          <View
-            style={[
-              styles.feedbackContainer,
-              feedback === 'correct' ? styles.correctFeedback : styles.incorrectFeedback,
-            ]}>
-            <Text style={styles.feedbackText}>
-              {feedback === 'correct' ? '✓ Correct!' : `✗ Wrong! Answer: ${question.correctAnswer}`}
-            </Text>
-          </View>
-        )}
+        <Animated.View style={[styles.answerDisplay, animatedAnswerStyle]}>
+          <Text style={styles.answerText}>{userAnswer || ''}</Text>
+        </Animated.View>
       </View>
 
       <NumberPad
@@ -160,15 +268,13 @@ export default function GameScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    paddingTop: 60,
-  },
-  header: {
-    paddingHorizontal: 20,
-    marginBottom: 30,
+    paddingTop: 10,
+    paddingBottom: 40,
   },
   homeButton: {
     alignSelf: 'flex-start',
     padding: 10,
+    marginLeft: 10,
   },
   homeButtonText: {
     fontSize: 18,
@@ -177,7 +283,8 @@ const styles = StyleSheet.create({
   },
   scoreContainer: {
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 5,
+    marginBottom: 20,
   },
   scoreText: {
     fontSize: 24,
@@ -187,6 +294,12 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 16,
     color: '#555',
+    marginTop: 5,
+  },
+  streakText: {
+    fontSize: 18,
+    color: '#FF6B35',
+    fontWeight: 'bold',
     marginTop: 5,
   },
   questionContainer: {
@@ -215,22 +328,6 @@ const styles = StyleSheet.create({
   answerText: {
     fontSize: 48,
     fontWeight: '600',
-    color: '#1a1a1a',
-  },
-  feedbackContainer: {
-    padding: 15,
-    borderRadius: 10,
-    marginTop: 20,
-  },
-  correctFeedback: {
-    backgroundColor: '#90EE90',
-  },
-  incorrectFeedback: {
-    backgroundColor: '#FFB6C1',
-  },
-  feedbackText: {
-    fontSize: 24,
-    fontWeight: 'bold',
     color: '#1a1a1a',
   },
 });

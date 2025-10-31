@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, Text } from 'react-native';
+import { View, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { HandDrawnButton } from '@/components/hand-drawn-button';
 import { ThemedView } from '@/components/themed-view';
 import { useGame, Difficulty } from '@/contexts/game-context';
@@ -10,7 +10,10 @@ export default function SettingsScreen() {
 
   const handleDifficultySelect = (difficulty: Difficulty) => {
     setDifficulty(difficulty);
-    router.back();
+  };
+
+  const goHome = () => {
+    router.push('/');
   };
 
   const getDifficultyDescription = (difficulty: Difficulty) => {
@@ -28,6 +31,10 @@ export default function SettingsScreen() {
 
   return (
     <ThemedView style={styles.container}>
+      <TouchableOpacity onPress={goHome} style={styles.homeButton}>
+        <Text style={styles.homeButtonText}>← Home</Text>
+      </TouchableOpacity>
+
       <View style={styles.content}>
         <Text style={styles.title}>Choose Difficulty</Text>
 
@@ -39,9 +46,9 @@ export default function SettingsScreen() {
               width={250}
               height={80}
               fontSize={24}
+              selected={isSelected('easy')}
             />
             <Text style={styles.description}>{getDifficultyDescription('easy')}</Text>
-            {isSelected('easy') && <Text style={styles.selectedIndicator}>✓ Selected</Text>}
           </View>
 
           <View style={styles.optionContainer}>
@@ -51,9 +58,9 @@ export default function SettingsScreen() {
               width={250}
               height={80}
               fontSize={24}
+              selected={isSelected('medium')}
             />
             <Text style={styles.description}>{getDifficultyDescription('medium')}</Text>
-            {isSelected('medium') && <Text style={styles.selectedIndicator}>✓ Selected</Text>}
           </View>
 
           <View style={styles.optionContainer}>
@@ -63,9 +70,9 @@ export default function SettingsScreen() {
               width={250}
               height={80}
               fontSize={24}
+              selected={isSelected('hard')}
             />
             <Text style={styles.description}>{getDifficultyDescription('hard')}</Text>
-            {isSelected('hard') && <Text style={styles.selectedIndicator}>✓ Selected</Text>}
           </View>
         </View>
 
@@ -82,6 +89,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
+  },
+  homeButton: {
+    alignSelf: 'flex-start',
+    padding: 10,
+    marginBottom: 10,
+  },
+  homeButtonText: {
+    fontSize: 18,
+    color: '#1a1a1a',
+    fontWeight: '600',
   },
   content: {
     flex: 1,
@@ -106,12 +123,6 @@ const styles = StyleSheet.create({
   description: {
     fontSize: 14,
     color: '#555',
-    marginTop: 5,
-  },
-  selectedIndicator: {
-    fontSize: 16,
-    color: '#1a1a1a',
-    fontWeight: 'bold',
     marginTop: 5,
   },
   currentSettings: {

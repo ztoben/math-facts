@@ -1,0 +1,7 @@
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <!-- E letter -->
+  <path d="M 250 300 L 450 300 L 450 360 L 330 360 L 330 480 L 430 480 L 430 540 L 330 540 L 330 660 L 450 660 L 450 720 L 250 720 Z" fill="#1a1a1a"/>
+
+  <!-- Z letter -->
+  <path d="M 550 300 L 750 300 L 750 360 L 650 660 L 750 660 L 750 720 L 550 720 L 550 660 L 650 360 L 550 360 Z" fill="#1a1a1a"/>
+</svg>
