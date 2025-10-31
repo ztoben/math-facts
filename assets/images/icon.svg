@@ -5,9 +5,9 @@
   <!-- Border -->
   <rect x="40" y="40" width="944" height="944" rx="160" fill="none" stroke="#1a1a1a" stroke-width="8"/>
 
-  <!-- E letter -->
-  <path d="M 250 300 L 450 300 L 450 360 L 330 360 L 330 480 L 430 480 L 430 540 L 330 540 L 330 660 L 450 660 L 450 720 L 250 720 Z" fill="#1a1a1a"/>
+  <!-- E letter (scaled down) -->
+  <path d="M 300 350 L 450 350 L 450 400 L 360 400 L 360 490 L 435 490 L 435 540 L 360 540 L 360 625 L 450 625 L 450 675 L 300 675 Z" fill="#1a1a1a"/>
 
-  <!-- Z letter -->
-  <path d="M 550 300 L 750 300 L 750 360 L 650 660 L 750 660 L 750 720 L 550 720 L 550 660 L 650 360 L 550 360 Z" fill="#1a1a1a"/>
+  <!-- Z letter (scaled down) -->
+  <path d="M 540 350 L 690 350 L 690 400 L 615 625 L 690 625 L 690 675 L 540 675 L 540 625 L 615 400 L 540 400 Z" fill="#1a1a1a"/>
 </svg>

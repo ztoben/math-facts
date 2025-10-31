@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "math-facts",
-    "slug": "math-facts",
+    "name": "EZ Math Facts",
+    "slug": "ez-math-facts",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
